@@ -17,7 +17,22 @@ class PipelineConfig:
     SITE: str = "stackoverflow"
 
     # Pipeline query controls
-    SEED_TAGS: list[str] = field(default_factory=lambda: ["python", "reactjs", "node.js", "vector-database"])
+    SEED_TAGS: list[str] = field(default_factory=lambda: [
+        # Languages
+        "python", "javascript", "typescript", "rust", "go", "cpp",
+        
+        # Web & Frameworks
+        "reactjs", "node.js", "fastapi", "django", "next.js", "express",
+        
+        # Data & AI / Vector Search
+        "vector-database", "machine-learning", "embeddings", "postgresql", "redis", "mongodb",
+        
+        # DevOps & Cloud Infrastructure
+        "docker", "kubernetes", "aws", "linux", "git",
+        
+        # Core Architecture & Engineering
+        "asyncio", "multithreading", "concurrency", "rest", "graphql"
+    ])
     MIN_TAG_COUNT: int = 1000
     PAGESIZE: int = 50
     MAX_QUESTIONS_PER_TAG: int = 50
