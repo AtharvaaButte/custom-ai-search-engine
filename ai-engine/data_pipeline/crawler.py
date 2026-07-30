@@ -41,7 +41,7 @@ class StackOverflowCrawler:
             posts = self.fetch_questions_by_tag(tag)
 
             for post in posts:
-                q_id = posts.get("question_id")
+                q_id = post.get("question_id")
                 if q_id and q_id not in seen_ids:
                     seen_ids.add(q_id)
                     all_posts.append(post)
