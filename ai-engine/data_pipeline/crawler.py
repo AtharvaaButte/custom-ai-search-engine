@@ -17,7 +17,8 @@ class StackOverflowCrawler:
             "sort": "votes",           # Priority on highest quality/voted questions
             "tagged": tag,
             "pagesize": self.config.MAX_QUESTIONS_PER_TAG,
-            "filter": "withbody"       # Ensures the response body text is included
+            "filter": "withbody",       # Ensures the response body text is included
+            "key": self.config.STACK_API_KEY
         }
 
         try:
@@ -26,7 +27,7 @@ class StackOverflowCrawler:
             data = response.json()
             return data.get("items", [])
 
-        except requests.RequestException:
+        except requests.RequestException as e:
             print(f"[Error] Failed to fetch questions for tag '{tag}': {e}")
             return []
 
@@ -37,7 +38,6 @@ class StackOverflowCrawler:
 
 
         for tag in tags:
-            print(f"[Crawler] Fetching posts for tag: '{tag}'...")
             posts = self.fetch_questions_by_tag(tag)
 
             for post in posts:

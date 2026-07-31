@@ -15,11 +15,15 @@ class TagDiscovery:
             "order": "desc",
             "sort": "popular",
             "pagesize": self.config.PAGESIZE,
-            "inname": inname_query
+            "inname": inname_query,
+            "key": self.config.STACK_API_KEY
         }
 
         try:
-            response = requests.get(url,params=params,timeout=10)
+            response = requests.get(
+                url,
+                params=params,
+                timeout=10)
             response.raise_for_status()
             data = response.json()
 
@@ -36,7 +40,6 @@ class TagDiscovery:
         discovered_tags = set(self.config.SEED_TAGS)
         
         for seed in self.config.SEED_TAGS:
-            print(f"[Discovery] Expanding tag domain for: '{seed}'...")
             related = self.fetch_related_tags(inname_query=seed)
             for item in related:
                 discovered_tags.add(item["name"])
