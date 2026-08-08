@@ -1,11 +1,18 @@
 import os
 import json
+import sys
 import time
-from retrieval.bm25_retriever import BM25Retriever
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+
+from retrieval.bm25_retriever import BM25Retriever 
 from retrieval.vector_retriever import VectorRetriever
 
-DATA_PATH = "data/processed_posts.json"
-INDEX_DIR = "data/indexes"
+DATA_PATH =  os.path.join(BASE_DIR,"data", "processed_posts.json")
+INDEX_DIR = os.path.join(BASE_DIR, "data" , "indexes")
 BM25_CACHE = os.path.join(INDEX_DIR, "bm25.pkl")
 VECTOR_CACHE = os.path.join(INDEX_DIR, "vector.pkl")
 
