@@ -15,6 +15,7 @@ class PipelineConfig:
     # Stack Exchange API settings
     BASE_API_URL: str = "https://api.stackexchange.com/2.3"
     SITE: str = "stackoverflow"
+    STACK_API_KEY: str = "rl_5B23ANz35KDkt99X1NhQcbKXF"  
 
     # Pipeline query controls
     SEED_TAGS: list[str] = field(default_factory=lambda: [
@@ -33,9 +34,10 @@ class PipelineConfig:
         # Core Architecture & Engineering
         "asyncio", "multithreading", "concurrency", "rest", "graphql"
     ])
+
     MIN_TAG_COUNT: int = 1000
-    PAGESIZE: int = 50
-    MAX_QUESTIONS_PER_TAG: int = 50
+    PAGESIZE: int = 100
+    MAX_QUESTIONS_PER_TAG: int = 100
 
     def __post_init__(self):
         self.BASE_DIR.mkdir(parents=True, exist_ok=True)
