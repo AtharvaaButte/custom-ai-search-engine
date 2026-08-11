@@ -68,7 +68,7 @@ class SearchRequest(BaseModel):
     top_k: int = Field(default=10, ge=1, le=50)
 
 class SearchResultDocument(BaseModel):
-    doc_id: str
+    id: str
     title: Optional[str] = None
     body: Optional[str] = None
     tags: Optional[List[str]] = None
