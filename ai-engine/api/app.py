@@ -9,7 +9,10 @@ from retrieval.bm25_retriever import BM25Retriever
 from retrieval.vector_retriever import VectorRetriever
 from retrieval.rrf_fusion import RRFHybridRetriever
 
+from services.rag_service import RAGSummarizer
+
 hybrid_engine: Optional[RRFHybridRetriever] = None
+rag_summarizer: Optional[RAGSummarizer] = None
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INDEX_DIR = os.path.join(BASE_DIR, "data", "indexes")
@@ -18,7 +21,7 @@ VECTOR_CACHE = os.path.join(INDEX_DIR, "vector.pkl")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global hybrid_engine
+    global hybrid_engine, rag_summarizer
     print("Booting Search Engine & Loading Indexes into RAM...")
 
     if not os.path.exists(BM25_CACHE) or not os.path.exists(VECTOR_CACHE):
@@ -39,8 +42,8 @@ async def lifespan(app: FastAPI):
         vector_retriever=vector, 
         k=60
     )
-    print("Search Engine loaded and ready for HTTP traffic!")
-
+    rag_summarizer = RAGSummarizer()
+    print("Search Engine & RAG Pipeline Loaded!")
     yield
 
     print(" Shutting down Search Engine...")
@@ -66,17 +69,19 @@ app.add_middleware(
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, example="docker exit code 137 memory leak")
     top_k: int = Field(default=10, ge=1, le=50)
+    enable_rag: bool = Field(default=False)
 
 class SearchResultDocument(BaseModel):
     id: str
     title: Optional[str] = None
-    body: Optional[str] = None
+    content: Optional[str] = None
     tags: Optional[List[str]] = None
     rrf_score: float
 
 class SearchResponse(BaseModel):
     query: str
     count: int
+    summary: Optional[str] = None   
     results: List[SearchResultDocument]
 
 
@@ -101,9 +106,15 @@ def search_posts(payload: SearchRequest):
 
     results = hybrid_engine.search(query=payload.query, top_k=payload.top_k)
 
+    # GENERATE AI SUMMARY IF ENABLE_RAG IS TRUE
+    ai_summary = None
+    if payload.enable_rag and rag_summarizer:
+        ai_summary = rag_summarizer.generate_summary(payload.query, results)
+
     return SearchResponse(
         query=payload.query,
         count=len(results),
+        summary=ai_summary,
         results=results
     )
     
