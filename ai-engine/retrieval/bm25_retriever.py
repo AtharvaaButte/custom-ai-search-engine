@@ -91,24 +91,3 @@ class BM25Retriever:
             self.bm25 = data["bm25"]
             self.documents = data["documents"]
 
-# Quick 
-if __name__ == "__main__":
-    # Sample data mimicking your clean JSON posts
-    sample_posts = [
-        {"id": "1", "title": "Python List Error", "content": "Python list object has no attribute get error in code"},
-        {"id": "2", "title": "Dictionary Methods", "content": "How to use dictionary get method in Python"},
-        {"id": "3", "title": "Java Lists", "content": "ArrayList performance in Java programming"}
-    ]
-
-    # Initialize and run BM25
-    engine = BM25SearchEngine()
-    engine.index_documents(sample_posts)
-
-    # Perform a search for exact error keywords
-    query = "list no attribute get"
-    results = engine.search(query, top_k=2)
-
-    print(f"\nSearch Query: '{query}'")
-    for res in results:
-        print(f"- [Score: {res['bm25_score']:.2f}] Post ID {res['id']}: {res['title']}")
-    
