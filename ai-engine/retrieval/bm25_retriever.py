@@ -67,14 +67,9 @@ class BM25Retriever:
 
         indexed_scores.sort(key=get_score, reverse=True)
 
-        top_indices = [] 
-        for index , score in indexed_scores[:top_k]:
-            top_indices.append(index)
-
         results = []
-
-        for idx in top_indices:
-            doc_copy = self.documents[idx].copy()
+        for index, score in indexed_scores[:top_k]:
+            doc_copy = self.documents[index].copy()
             doc_copy["bm25_score"] = float(score)
             results.append(doc_copy)
 

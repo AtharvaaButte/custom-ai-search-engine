@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from typing import Dict, List, Optional
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from retrieval.bm25_retriever import BM25Retriever
@@ -77,6 +78,8 @@ class SearchResultDocument(BaseModel):
     content: Optional[str] = None
     tags: Optional[List[str]] = None
     rrf_score: float
+    bm25_score: Optional[float] = 0.0
+    vector_score: Optional[float] = 0.0
 
 class SearchResponse(BaseModel):
     query: str
@@ -117,5 +120,4 @@ def search_posts(payload: SearchRequest):
         summary=ai_summary,
         results=results
     )
-    
 
