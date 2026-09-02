@@ -30,8 +30,9 @@ export default function App() {
     : [];
 
   return (
-    <div className="min-h-screen bg-[#07090e] text-zinc-100 font-sans antialiased relative">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[350px] bg-gradient-to-b from-indigo-600/15 via-cyan-500/10 to-transparent blur-3xl pointer-events-none -z-10" />
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased relative selection:bg-indigo-500/30 selection:text-indigo-200">
+      {/* Radial Background Gradient Glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-gradient-to-b from-indigo-600/20 via-purple-600/10 to-transparent blur-3xl pointer-events-none -z-10" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-10 flex flex-col gap-8">
         <SearchHeader
@@ -68,7 +69,7 @@ export default function App() {
             <div className="flex flex-col lg:flex-row gap-8 items-start">
               {/* Matched Documents List */}
               <section className="flex-1 w-full space-y-4">
-                <h2 className="text-xs font-mono uppercase tracking-wider text-zinc-400 px-1">
+                <h2 className="text-xs font-mono uppercase tracking-wider text-slate-400 px-1">
                   Matched Documents ({items.length})
                 </h2>
 
@@ -77,15 +78,15 @@ export default function App() {
                     <ResultCard key={result.id || index} result={result} />
                   ))
                 ) : (
-                  <div className="py-12 text-center bg-zinc-900/40 border border-zinc-800/60 rounded-xl flex flex-col items-center gap-3 text-zinc-400">
-                    <SearchX className="w-8 h-8 text-zinc-500" />
+                  <div className="py-12 text-center bg-slate-900/40 border border-slate-800/60 rounded-xl flex flex-col items-center gap-3 text-slate-400">
+                    <SearchX className="w-8 h-8 text-slate-500" />
                     <p className="text-sm font-medium">No matches found for "{query}"</p>
                   </div>
                 )}
               </section>
 
               {/* AI Summary Section */}
-              <AISummary content={aiSummary} isStreaming={false} />
+              <AISummary content={aiSummary} isStreaming={isSearching} />
             </div>
           )
         )}

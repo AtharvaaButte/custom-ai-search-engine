@@ -21,10 +21,10 @@ export function LandingState({ onSelectQuery }) {
             <button
               key={item}
               onClick={() => onSelectQuery(item)}
-              className="flex items-center justify-between p-4 rounded-xl bg-zinc-900/50 hover:bg-zinc-800/80 border border-zinc-800/80 hover:border-indigo-500/50 text-left text-sm text-zinc-300 hover:text-white transition-all group cursor-pointer shadow-sm"
+              className="flex items-center justify-between p-4 rounded-xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/50 text-left text-sm text-slate-300 hover:text-slate-100 transition-all duration-200 group cursor-pointer shadow-sm backdrop-blur-md"
             >
               <span className="truncate pr-3 font-mono text-xs">{item}</span>
-              <ArrowUpRight className="w-4 h-4 text-zinc-500 group-hover:text-indigo-400 shrink-0 transition-colors"/>
+              <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 shrink-0 transition-colors"/>
             </button>
           ))}
         </div>

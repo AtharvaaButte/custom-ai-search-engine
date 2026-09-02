@@ -33,23 +33,36 @@ export function useSearch() {
       const response = await fetchSearchResults(trimmed, abortControllerRef.current.signal);
       const endTime = performance.now();
 
-      const payload = response.data || response;
+      // Express API returns: { source: '...', data: { query, count, summary, results } }
+      const resData = response?.data;
 
-      const itemsList = Array.isArray(payload.results)
-        ? payload.results
-        : Array.isArray(payload)
-        ? payload
+      // Extract results array cleanly from response.data.results or response.results
+      const itemsList = Array.isArray(resData?.results)
+        ? resData.results
+        : Array.isArray(response?.results)
+        ? response.results
+        : Array.isArray(resData)
+        ? resData
+        : Array.isArray(response)
+        ? response
         : [];
 
-      setLatency(payload.latency ?? Math.round(endTime - startTime));
-      setDataSource(response.source || payload.source || 'python_engine');
+      // Extract summary string explicitly from response.data.summary or response.summary
+      const summaryText =
+        (typeof resData?.summary === 'string' && resData.summary) ||
+        (typeof response?.summary === 'string' && response.summary) ||
+        (typeof resData === 'string' ? resData : '') ||
+        '';
+
+      setLatency(resData?.latency ?? response?.latency ?? Math.round(endTime - startTime));
+      setDataSource(response?.source || resData?.source || 'python_engine');
 
       setResultsData({
         results: itemsList,
-        count: payload.count ?? itemsList.length,
+        count: resData?.count ?? response?.count ?? itemsList.length,
       });
 
-      setAiSummary(payload.summary || '');
+      setAiSummary(summaryText);
     } catch (err) {
       if (err.name !== 'AbortError' && err.code !== 'ERR_CANCELED') {
         setError(
