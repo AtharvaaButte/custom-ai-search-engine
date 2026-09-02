@@ -1,0 +1,58 @@
+version: '3.8'
+
+networks:
+  app-network:
+    driver: bridge
+
+services:
+  # 1. Local Redis Cache
+  redis:
+    image: redis:alpine
+    container_name: search-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+  # 2. Python FastAPI (AI & Search Engine)
+  ai-engine:
+    build: ./ai-engine
+    container_name: search-ai-engine
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+    networks:
+      - app-network
+
+  # 3. Node.js / Express Proxy Backend
+  backend:
+    build: ./backend
+    container_name: search-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - AI_ENGINE_URL=http://ai-engine:8000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - ai-engine
+      - redis
+    networks:
+      - app-network
+
+  # 4. React Frontend
+  frontend:
+    build: ./frontend
+    container_name: search-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      - backend
+    networks:
+      - app-network
