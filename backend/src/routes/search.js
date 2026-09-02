@@ -2,6 +2,7 @@ import express from 'express';
 import axios from 'axios';
 import redisClient from '../config/redis.js';
 import { env } from '../config/env.js';
+import { log } from 'console';
 
 const router = express.Router();
 
@@ -58,4 +59,6 @@ router.post('/', async (req, res) => {
 });
 
 export default router;
+
+
 
