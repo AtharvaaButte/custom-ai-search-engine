@@ -13,7 +13,7 @@ services:
     plan: free
     envVars:
       - key: GROQ_API_KEY
-        sync: false
+        sync: false  # Prompts for Groq key in Render UI
 
   # 3. Node.js / Express Proxy Backend
   - type: web
@@ -26,26 +26,27 @@ services:
       - key: PORT
         value: 5000
       - key: PYTHON_API_URL
-        value: http://search-ai-engine:10000
+        fromService:
+          type: web
+          name: search-ai-engine
+          property: hostport
       - key: AI_ENGINE_URL
-        value: http://search-ai-engine:10000
+        fromService:
+          type: web
+          name: search-ai-engine
+          property: hostport
       - key: REDIS_URL
         fromDatabase:
           name: search-redis
           property: internalConnectionString
 
-  # 4. React Frontend (Vite)
+  # 4. React Frontend (Vite + Nginx)
   - type: web
     name: search-frontend
     env: docker
     dockerContext: ./frontend
     dockerfilePath: ./frontend/Dockerfile
     plan: free
-    dockerArgs:
-      - key: VITE_API_BASE_URL
-        value: https://search-backend.onrender.com
-      - key: VITE_API_SEARCH_URL
-        value: https://search-backend.onrender.com/api/search
     envVars:
       - key: VITE_API_BASE_URL
         value: https://search-backend.onrender.com
