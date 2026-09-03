@@ -1,0 +1,60 @@
+# 1. Managed Redis Cache
+databases:
+  - name: search-redis
+    plan: free
+
+services:
+  # 2. Python FastAPI (AI & Search Engine)
+  - type: web
+    name: search-ai-engine
+    env: docker
+    dockerContext: ./ai-engine
+    dockerfilePath: ./ai-engine/Dockerfile
+    plan: free
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false 
+
+  # 3. Node.js / Express Proxy Backend
+  - type: web
+    name: search-backend
+    env: docker
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: PYTHON_API_URL
+        fromService:
+          type: web
+          name: search-ai-engine
+          property: hostport
+      - key: AI_ENGINE_URL
+        fromService:
+          type: web
+          name: search-ai-engine
+          property: hostport
+      - key: REDIS_URL
+        fromDatabase:
+          name: search-redis
+          property: connectionString
+
+  # 4. React Frontend (Vite)
+  - type: web
+    name: search-frontend
+    env: docker
+    dockerContext: ./frontend
+    dockerfilePath: ./frontend/Dockerfile
+    plan: free
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: search-backend
+          property: url
+      - key: VITE_API_SEARCH_URL
+        fromService:
+          type: web
+          name: search-backend
+          property: url
