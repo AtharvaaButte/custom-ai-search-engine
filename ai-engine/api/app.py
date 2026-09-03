@@ -26,9 +26,12 @@ async def lifespan(app: FastAPI):
     print("Booting Search Engine & Loading Indexes into RAM...")
 
     if not os.path.exists(BM25_CACHE) or not os.path.exists(VECTOR_CACHE):
-        raise RuntimeError(
-            "Index files missing! Run 'python scripts/build_indexes.py' first."
-    )
+        print("Index files missing! Automatically building search indexes...")
+        try:
+            from scripts.build_indexes import build_all_indexes
+            build_all_indexes()
+        except Exception as err:
+            print(f"Warning: Could not build indexes automatically: {err}")
 
     # Load pre-built indexes
     bm25 = BM25Retriever(index_path=BM25_CACHE)
