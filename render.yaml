@@ -14,6 +14,12 @@ services:
     envVars:
       - key: GROQ_API_KEY
         sync: false  # Prompts for Groq key in Render UI
+      - key: HF_TOKEN
+        sync: false  # Prompts for Hugging Face token in Render UI
+      - key: HF_API_URL
+        value: https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction
+      - key: PYTHONUNBUFFERED
+        value: "1"
 
   # 3. Node.js / Express Proxy Backend
   - type: web
