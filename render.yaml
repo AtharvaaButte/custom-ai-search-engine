@@ -32,7 +32,7 @@ services:
       - key: REDIS_URL
         fromDatabase:
           name: search-redis
-          property: connectionString
+          property: internalConnectionString
 
   # 4. React Frontend (Vite)
   - type: web
@@ -41,6 +41,11 @@ services:
     dockerContext: ./frontend
     dockerfilePath: ./frontend/Dockerfile
     plan: free
+    dockerArgs:
+      - key: VITE_API_BASE_URL
+        value: https://search-backend.onrender.com
+      - key: VITE_API_SEARCH_URL
+        value: https://search-backend.onrender.com/api/search
     envVars:
       - key: VITE_API_BASE_URL
         value: https://search-backend.onrender.com
