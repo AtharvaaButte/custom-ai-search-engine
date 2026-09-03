@@ -21,8 +21,13 @@ services:
     container_name: search-ai-engine
     ports:
       - "8000:8000"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     environment:
       - GROQ_API_KEY=${GROQ_API_KEY}
+      - HF_TOKEN=${HF_TOKEN}
+      - HF_API_URL=https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     volumes:

@@ -19,8 +19,8 @@ class VectorRetriever:
         )
         self.api_key = raw_token.strip().strip('"').strip("'")
         
-        # 2. Hardened URL resolution with primary Hugging Face Router endpoint
-        default_url = f"https://router.huggingface.co/hf-inference/models/{model_name}/pipeline/feature-extraction"
+        # 2. Hardened URL resolution using strictly the Hugging Face Router endpoint
+        default_url = "https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction"
         raw_url = os.getenv("HF_API_URL") or os.getenv("EMBEDDING_API_URL") or default_url
         self.api_url = raw_url.strip().strip('"').strip("'").rstrip("/")
 
@@ -34,41 +34,35 @@ class VectorRetriever:
 
         payload = {"inputs": text, "options": {"wait_for_model": True}}
 
-        endpoints_to_try = [self.api_url]
-        backup_url = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{self.model_name}"
-        if backup_url not in endpoints_to_try:
-            endpoints_to_try.append(backup_url)
-
-        last_error = None
-        for endpoint in endpoints_to_try:
-            try:
-                with httpx.Client(timeout=20.0, follow_redirects=True) as client:
-                    response = client.post(endpoint, json=payload, headers=headers)
+        try:
+            with httpx.Client(timeout=20.0, follow_redirects=True) as client:
+                response = client.post(self.api_url, json=payload, headers=headers)
+                
+                if response.status_code == 200:
+                    res_json = response.json()
                     
-                    if response.status_code == 200:
-                        res_json = response.json()
-                        
-                        if isinstance(res_json, list):
-                            if len(res_json) == 0:
-                                raise ValueError("Embedding API returned an empty list.")
-                            if isinstance(res_json[0], list):
-                                if len(res_json) == 1:
-                                    arr = np.array(res_json[0], dtype=np.float32)
-                                else:
-                                    arr = np.mean(res_json, axis=0, dtype=np.float32)
+                    if isinstance(res_json, list):
+                        if len(res_json) == 0:
+                            raise ValueError("Embedding API returned an empty list.")
+                        if isinstance(res_json[0], list):
+                            if len(res_json) == 1:
+                                arr = np.array(res_json[0], dtype=np.float32)
                             else:
-                                arr = np.array(res_json, dtype=np.float32)
-                            
-                            return arr
+                                arr = np.mean(res_json, axis=0, dtype=np.float32)
+                        else:
+                            arr = np.array(res_json, dtype=np.float32)
                         
-                        raise ValueError(f"Unexpected response format from Embedding API: {res_json}")
+                        return arr
                     
-                    last_error = f"HTTP {response.status_code} from {endpoint}: {response.text[:200]}"
-            except Exception as err:
-                last_error = f"Connection error calling {endpoint}: {str(err)}"
-
-        print(f"Embedding Fetch Failed: {last_error}")
-        raise RuntimeError(f"Failed to fetch remote vector embedding: {last_error}")
+                    raise ValueError(f"Unexpected response format from Embedding API: {res_json}")
+                
+                error_msg = f"HTTP {response.status_code} from {self.api_url}: {response.text[:200]}"
+                print(f"Embedding Fetch Error: {error_msg}")
+                raise RuntimeError(error_msg)
+        except Exception as err:
+            error_msg = f"Connection error calling {self.api_url}: {str(err)}"
+            print(f"Embedding Fetch Error: {error_msg}")
+            raise RuntimeError(f"Failed to fetch remote vector embedding: {error_msg}")
 
     def build_and_save(self, documents: List[Dict[str, Any]]):
         print("Generating Remote Vector Embeddings via HTTP API...")
