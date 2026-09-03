@@ -13,8 +13,8 @@ services:
     plan: free
     envVars:
       - key: GROQ_API_KEY
-        sync: false 
-        
+        sync: false
+
   # 3. Node.js / Express Proxy Backend
   - type: web
     name: search-backend
@@ -41,11 +41,6 @@ services:
     dockerContext: ./frontend
     dockerfilePath: ./frontend/Dockerfile
     plan: free
-    dockerArgs:
-      - key: VITE_API_BASE_URL
-        value: https://search-backend.onrender.com
-      - key: VITE_API_SEARCH_URL
-        value: https://search-backend.onrender.com/api/search
     envVars:
       - key: VITE_API_BASE_URL
         value: https://search-backend.onrender.com
