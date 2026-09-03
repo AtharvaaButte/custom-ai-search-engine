@@ -1,12 +1,32 @@
 import { createClient } from 'redis';
 
-let redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+const getCleanRedisUrl = () => {
+  let rawUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+  
+  // 1. Trim whitespace, quotes, and trailing slashes/newlines
+  let cleaned = rawUrl.trim().replace(/^["']|["']$/g, '');
 
-// Ensure valid scheme
-if (!redisUrl.startsWith('redis://') && !redisUrl.startsWith('rediss://')) {
-  redisUrl = `redis://${redisUrl}`;
-}
+  // 2. Ensure scheme prefix
+  if (!cleaned.startsWith('redis://') && !cleaned.startsWith('rediss://')) {
+    cleaned = `redis://${cleaned}`;
+  }
 
+  // 3. Parse URL safely to sanitize invalid pathnames
+  try {
+    const parsed = new URL(cleaned);
+    // Redis URL pathname must be empty, '/', or integer database index like '/0'
+    if (parsed.pathname && parsed.pathname !== '/' && !/^\/\d+$/.test(parsed.pathname)) {
+      console.warn(`Sanitizing invalid Redis URL pathname "${parsed.pathname}" -> reset to root`);
+      parsed.pathname = '';
+    }
+    return parsed.toString();
+  } catch (err) {
+    console.warn(`Redis URL parsing fallback for "${cleaned}":`, err.message);
+    return cleaned;
+  }
+};
+
+const redisUrl = getCleanRedisUrl();
 const isSecure = redisUrl.startsWith('rediss://');
 
 const redisClient = createClient({
@@ -17,7 +37,13 @@ const redisClient = createClient({
   }
 });
 
-redisClient.on('error', (err) => console.error('Redis Error:', err));
+redisClient.on('error', (err) => console.error('Redis Error:', err.message || err));
+redisClient.on('connect', () => console.log('Connected to Redis successfully.'));
 
-await redisClient.connect();
+try {
+  await redisClient.connect();
+} catch (err) {
+  console.error('Failed to connect to Redis:', err.message);
+}
+
 export default redisClient;
