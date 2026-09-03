@@ -1,7 +1,21 @@
-FROM node:20-alpine
+# --- Stage 1: Build the Vite production assets ---
+FROM node:20-alpine AS build
+
 WORKDIR /app
+
 COPY package*.json ./
-RUN npm install
+RUN npm ci
+
 COPY . .
-EXPOSE 3000
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+RUN npm run build
+
+# --- Stage 2: Serve static files with Nginx ---
+FROM nginx:alpine
+
+# Copy built static files from Stage 1 into Nginx
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Expose standard HTTP port
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
