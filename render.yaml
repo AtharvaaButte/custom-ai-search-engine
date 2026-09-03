@@ -47,8 +47,13 @@ services:
     dockerContext: ./frontend
     dockerfilePath: ./frontend/Dockerfile
     plan: free
+    dockerArgs:
+      - key: VITE_API_BASE_URL
+        value: https://search-backend.onrender.com/api/search
+      - key: VITE_API_SEARCH_URL
+        value: https://search-backend.onrender.com/api/search
     envVars:
       - key: VITE_API_BASE_URL
-        value: https://search-backend.onrender.com
+        value: https://search-backend.onrender.com/api/search
       - key: VITE_API_SEARCH_URL
         value: https://search-backend.onrender.com/api/search
