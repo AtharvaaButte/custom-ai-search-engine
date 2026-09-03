@@ -12,14 +12,16 @@ services:
     dockerfilePath: ./ai-engine/Dockerfile
     plan: free
     envVars:
-      - key: GROQ_API_KEY
-        sync: false  # Prompts for Groq key in Render UI
-      - key: HF_TOKEN
-        sync: false  # Prompts for Hugging Face token in Render UI
-      - key: HF_API_URL
-        value: https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction
+      - key: PORT
+        value: 10000
       - key: PYTHONUNBUFFERED
         value: "1"
+      - key: HF_TOKEN
+        sync: false  # Prompts for Hugging Face token in Render UI
+      - key: GROQ_API_KEY
+        sync: false  # Prompts for Groq key in Render UI
+      - key: HF_API_URL
+        value: https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction
 
   # 3. Node.js / Express Proxy Backend
   - type: web
@@ -32,21 +34,15 @@ services:
       - key: PORT
         value: 5000
       - key: PYTHON_API_URL
-        fromService:
-          type: web
-          name: search-ai-engine
-          property: hostport
+        value: http://search-ai-engine:10000
       - key: AI_ENGINE_URL
-        fromService:
-          type: web
-          name: search-ai-engine
-          property: hostport
+        value: http://search-ai-engine:10000
       - key: REDIS_URL
         fromDatabase:
           name: search-redis
-          property: internalConnectionString
+          property: connectionString
 
-  # 4. React Frontend (Vite + Nginx)
+  # 4. React Frontend (Vite)
   - type: web
     name: search-frontend
     env: docker
