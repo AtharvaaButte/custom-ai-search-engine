@@ -13,8 +13,8 @@ services:
     plan: free
     envVars:
       - key: GROQ_API_KEY
-        sync: false  # Prompts for Groq key in Render UI
-
+        sync: false 
+        
   # 3. Node.js / Express Proxy Backend
   - type: web
     name: search-backend
@@ -26,15 +26,9 @@ services:
       - key: PORT
         value: 5000
       - key: PYTHON_API_URL
-        fromService:
-          type: web
-          name: search-ai-engine
-          property: hostport
+        value: http://search-ai-engine:10000
       - key: AI_ENGINE_URL
-        fromService:
-          type: web
-          name: search-ai-engine
-          property: hostport
+        value: http://search-ai-engine:10000
       - key: REDIS_URL
         fromDatabase:
           name: search-redis
