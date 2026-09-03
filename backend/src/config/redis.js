@@ -1,27 +1,23 @@
 import { createClient } from 'redis';
 
-// 1. Retrieve REDIS_URL or fallback to local development
 let redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
-// 2. Ensure a valid protocol prefix is attached
+// Ensure valid scheme
 if (!redisUrl.startsWith('redis://') && !redisUrl.startsWith('rediss://')) {
   redisUrl = `redis://${redisUrl}`;
 }
 
-// 3. Configure socket options for SSL/TLS support on cloud hosts
 const isSecure = redisUrl.startsWith('rediss://');
 
 const redisClient = createClient({
   url: redisUrl,
   socket: {
     tls: isSecure ? true : undefined,
-    rejectUnauthorized: false // Bypasses self-signed cert checks on cloud internal networks
+    rejectUnauthorized: false
   }
 });
 
-redisClient.on('error', (err) => console.error('Redis Client Error:', err));
-redisClient.on('connect', () => console.log('Connected to Redis successfully.'));
+redisClient.on('error', (err) => console.error('Redis Error:', err));
 
 await redisClient.connect();
-
 export default redisClient;

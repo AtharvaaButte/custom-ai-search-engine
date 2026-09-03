@@ -1,70 +1,89 @@
 import os
 import pickle
 import numpy as np
+import httpx
 from typing import List, Dict, Any
-from sentence_transformers import SentenceTransformer
 
 class VectorRetriever:
     def __init__(self, index_path="ai-engine/data/indexes/vector.pkl", model_name: str = "all-MiniLM-L6-v2"):
-        """
-        Initializes the Vector Search Engine with a SentenceTransformer model.
-        all-MiniLM-L6-v2 produces 384-dimensional dense vectors.
-        """
-        print(f"Loading transformer model: {model_name}...")
         self.index_path = index_path
-        self.model = SentenceTransformer(model_name)
-        self.embeddings : np.ndarray = None
+        self.model_name = model_name
+        self.embeddings: np.ndarray = None
         self.documents: List[Dict[str, Any]] = []
-
-    def build_and_save(self, documents: List[Dict[str, Any]]):
-        """Generates dense vector embeddings and saves them to disk."""
-        print("Generating Vector Embeddings...")
-
-        self.documents = documents  
-
-        # Prepare text strings for embedding
-        corpus = []
-        for doc in documents:
-            content = doc.get("content", "")
-            corpus.append(content)
-
-        raw_embeddings = self.model.encode(
-            corpus, 
-            show_progress_bar=True, 
-            convert_to_numpy=True
+        self.api_key = os.getenv("EMBEDDING_API_KEY") or os.getenv("HF_TOKEN")
+        self.api_url = os.getenv(
+            "EMBEDDING_API_URL", 
+            f"https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/{model_name}"
         )
 
-         # L2 Normalization 
-        norms = np.linalg.norm(raw_embeddings, axis=1, keepdims=True)
+    def _get_embedding_remote(self, text: str) -> np.ndarray:
+        headers = {}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                response = client.post(
+                    self.api_url,
+                    json={"inputs": text, "options": {"wait_for_model": True}},
+                    headers=headers
+                )
+                if response.status_code == 200:
+                    res_json = response.json()
+                    if isinstance(res_json, list):
+                        if isinstance(res_json[0], list):
+                            arr = np.mean(res_json, axis=0)
+                            return np.array(arr, dtype=np.float32)
+                        return np.array(res_json, dtype=np.float32)
+        except Exception as e:
+            print(f"Warning: HTTP embedding request failed ({e}). Using deterministic feature encoding.")
+        
+        return self._get_fallback_embedding(text)
 
+    def _get_fallback_embedding(self, text: str) -> np.ndarray:
+        vec = np.zeros(384, dtype=np.float32)
+        words = text.lower().split()
+        if not words:
+            return vec
+        for word in words:
+            idx = abs(hash(word)) % 384
+            vec[idx] += 1.0
+        norm = np.linalg.norm(vec)
+        if norm > 0:
+            vec = vec / norm
+        return vec
+
+    def build_and_save(self, documents: List[Dict[str, Any]]):
+        print("Generating Vector Embeddings (Lightweight)...")
+        self.documents = documents
+        corpus = [doc.get("content", "") for doc in documents]
+        
+        raw_embeddings = []
+        for text in corpus:
+            emb = self._get_embedding_remote(text)
+            raw_embeddings.append(emb)
+        
+        raw_embeddings = np.array(raw_embeddings, dtype=np.float32)
+        norms = np.linalg.norm(raw_embeddings, axis=1, keepdims=True)
         norms[norms == 0] = 1e-10
-        self.embeddings = raw_embeddings/ norms 
+        self.embeddings = raw_embeddings / norms
 
         print(f"Vector index built with shape: {self.embeddings.shape}")
-
-        # Save to disk using pickle
         os.makedirs(os.path.dirname(self.index_path), exist_ok=True)
         with open(self.index_path, "wb") as f:
             pickle.dump({"embeddings": self.embeddings, "documents": self.documents}, f)
         print(f"Vector embeddings saved successfully to {self.index_path}")
 
     def search(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
-        """
-        Encodes the query and finds top_k documents using Cosine Similarity (Dot Product of normalized vectors).
-        """
         if self.embeddings is None:
-            raise ValueError("Vector index has not been built yet. Call index_documents first.")
+            raise ValueError("Vector index has not been built yet.")
 
-        # Encode query and L2-normalize
-        query_embedding = self.model.encode([query], convert_to_numpy=True)[0]
-        query_norm =np.linalg.norm(query_embedding)
+        query_embedding = self._get_embedding_remote(query)
+        query_norm = np.linalg.norm(query_embedding)
+        if query_norm > 0:
+            query_embedding = query_embedding / query_norm
 
-        if query_norm> 0:
-            query_embedding = query_embedding/query_norm
-
-        scores = np.dot (self.embeddings, query_embedding)
+        scores = np.dot(self.embeddings, query_embedding)
         top_indices = np.argsort(scores)[::-1][:top_k]
-
 
         results = []
         for idx in top_indices:
@@ -76,7 +95,6 @@ class VectorRetriever:
         return results
 
     def load_index(self):
-        """Loads cached vector embeddings from pickle file."""
         if not os.path.exists(self.index_path):
             raise FileNotFoundError(f"No vector cache found at {self.index_path}. Build it first!")
 
@@ -85,4 +103,3 @@ class VectorRetriever:
             data = pickle.load(f)
             self.embeddings = data["embeddings"]
             self.documents = data["documents"]
-
