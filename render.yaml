@@ -1,9 +1,10 @@
-# 1. Managed Redis Cache
-databases:
-  - name: search-redis
-    plan: free
-
 services:
+  # 1. Managed Redis Cache (Key Value)
+  - type: keyvalue
+    name: search-redis
+    plan: free
+    ipAllowList: [] 
+
   # 2. Python FastAPI (AI & Search Engine)
   - type: web
     name: search-ai-engine
@@ -17,9 +18,9 @@ services:
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: HF_TOKEN
-        sync: false  # Prompts for Hugging Face token in Render UI
+        sync: false
       - key: GROQ_API_KEY
-        sync: false  # Prompts for Groq key in Render UI
+        sync: false
       - key: HF_API_URL
         value: https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction
 
@@ -38,7 +39,8 @@ services:
       - key: AI_ENGINE_URL
         value: http://search-ai-engine:10000
       - key: REDIS_URL
-        fromDatabase:
+        fromService:
+          type: keyvalue
           name: search-redis
           property: connectionString
 
