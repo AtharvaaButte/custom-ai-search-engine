@@ -5,55 +5,62 @@ import httpx
 from typing import List, Dict, Any
 
 class VectorRetriever:
-    def __init__(self, index_path="ai-engine/data/indexes/vector.pkl", model_name: str = "all-MiniLM-L6-v2"):
+    def __init__(self, index_path="ai-engine/data/indexes/vector.pkl", model_name: str = "sentence-transformers/all-MiniLM-L6-v2"):
         self.index_path = index_path
         self.model_name = model_name
         self.embeddings: np.ndarray = None
         self.documents: List[Dict[str, Any]] = []
-        self.api_key = os.getenv("EMBEDDING_API_KEY") or os.getenv("HF_TOKEN")
-        self.api_url = os.getenv(
-            "EMBEDDING_API_URL", 
-            f"https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/{model_name}"
+        
+        # Read API token from environment variables
+        self.api_key = (
+            os.getenv("HF_TOKEN") or 
+            os.getenv("HUGGINGFACE_API_KEY") or 
+            os.getenv("EMBEDDING_API_KEY")
         )
+        
+        default_url = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{model_name}"
+        self.api_url = os.getenv("EMBEDDING_API_URL", default_url)
 
     def _get_embedding_remote(self, text: str) -> np.ndarray:
-        headers = {}
+        headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
-        try:
-            with httpx.Client(timeout=10.0) as client:
-                response = client.post(
-                    self.api_url,
-                    json={"inputs": text, "options": {"wait_for_model": True}},
-                    headers=headers
-                )
-                if response.status_code == 200:
-                    res_json = response.json()
-                    if isinstance(res_json, list):
-                        if isinstance(res_json[0], list):
-                            arr = np.mean(res_json, axis=0)
-                            return np.array(arr, dtype=np.float32)
-                        return np.array(res_json, dtype=np.float32)
-        except Exception as e:
-            print(f"Warning: HTTP embedding request failed ({e}). Using deterministic feature encoding.")
-        
-        return self._get_fallback_embedding(text)
 
-    def _get_fallback_embedding(self, text: str) -> np.ndarray:
-        vec = np.zeros(384, dtype=np.float32)
-        words = text.lower().split()
-        if not words:
-            return vec
-        for word in words:
-            idx = abs(hash(word)) % 384
-            vec[idx] += 1.0
-        norm = np.linalg.norm(vec)
-        if norm > 0:
-            vec = vec / norm
-        return vec
+        payload = {"inputs": text, "options": {"wait_for_model": True}}
+
+        try:
+            with httpx.Client(timeout=15.0) as client:
+                response = client.post(self.api_url, json=payload, headers=headers)
+                
+                if response.status_code != 200:
+                    error_msg = f"Embedding API call failed with status {response.status_code}: {response.text}"
+                    print(f"Error: {error_msg}")
+                    raise RuntimeError(error_msg)
+                
+                res_json = response.json()
+                
+                if isinstance(res_json, list):
+                    if len(res_json) == 0:
+                        raise ValueError("Embedding API returned an empty list.")
+                    # Handle 2D list output (e.g. [[...]]) or token embeddings
+                    if isinstance(res_json[0], list):
+                        if len(res_json) == 1:
+                            arr = np.array(res_json[0], dtype=np.float32)
+                        else:
+                            arr = np.mean(res_json, axis=0, dtype=np.float32)
+                    else:
+                        arr = np.array(res_json, dtype=np.float32)
+                    
+                    return arr
+                
+                raise ValueError(f"Unexpected response format from Embedding API: {res_json}")
+
+        except Exception as e:
+            print(f"Embedding Fetch Error for text: {str(e)}")
+            raise RuntimeError(f"Failed to fetch remote vector embedding: {str(e)}")
 
     def build_and_save(self, documents: List[Dict[str, Any]]):
-        print("Generating Vector Embeddings (Lightweight)...")
+        print("Generating Remote Vector Embeddings via HTTP API...")
         self.documents = documents
         corpus = [doc.get("content", "") for doc in documents]
         
@@ -89,7 +96,7 @@ class VectorRetriever:
         for idx in top_indices:
             score = float(scores[idx])
             doc_copy = self.documents[idx].copy()
-            doc_copy["vector_score"] = score
+            doc_copy["vector_score"] = round(score, 5)
             results.append(doc_copy)
 
         return results
